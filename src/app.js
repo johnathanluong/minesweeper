@@ -8,9 +8,13 @@ document.addEventListener("DOMContentLoaded", () => {
 	let bombCount = 20;
 	let squares = [];
 	let isGameOver = false;
+	let bombPositions;
 
-	// Click events
-	const click = (square) => {
+	/**
+	 * Reveals a square on the board and recursively reveals neighboring squares if the square is empty.
+	 * @param {HTMLElement} square - The square to be revealed.
+	 */
+	const revealSquare = (square) => {
 		let isChecked = square.classList.contains("checked");
 		let isFlagged = square.classList.contains("flag");
 		let isBomb = square.classList.contains("bomb");
@@ -27,11 +31,15 @@ document.addEventListener("DOMContentLoaded", () => {
 				square.textContent = total;
 				return;
 			}
-			checkSquare(square);
+			square.classList.add("checked");
+			revealNeighbors(square);
 		}
-		square.classList.add("checked");
 	};
 
+	/**
+	 * Adds or removes a flag to the square and checks if the game is complete
+	 * @param {HTMLElement} square - The square to be flagged.
+	 */
 	const addFlag = (square) => {
 		if (isGameOver) {
 			return;
@@ -56,6 +64,74 @@ document.addEventListener("DOMContentLoaded", () => {
 		}
 	};
 
+	/**
+	 * Gets the surrounding squares and reveals them using revealSquare()
+	 * @param {HTMLElement} square
+	 */
+	const revealNeighbors = (square) => {
+		const curId = parseInt(square.id);
+		const isLeftEdge = curId % width === 0;
+		const isRightEdge = (curId + 1) % width === 0;
+
+		const neighbors = [];
+
+		// Top-left
+		if (curId >= width && !isLeftEdge) {
+			const newId = curId - 1 - width;
+			neighbors.push(newId);
+		}
+
+		// Top
+		if (curId >= width) {
+			const newId = curId - width;
+			neighbors.push(newId);
+		}
+
+		// Top-right
+		if (curId >= width && !isRightEdge) {
+			const newId = curId + 1 - width;
+			neighbors.push(newId);
+		}
+
+		// Left
+		if (!isLeftEdge) {
+			const newId = curId - 1;
+			neighbors.push(newId);
+		}
+
+		// Right
+		if (!isRightEdge) {
+			const newId = curId + 1;
+			neighbors.push(newId);
+		}
+
+		// Bottom-left
+		if (curId < width * (width - 1) && !isLeftEdge) {
+			const newId = curId - 1 + width;
+			neighbors.push(newId);
+		}
+
+		// Bottom
+		if (curId < width * (width - 1)) {
+			const newId = curId + width;
+			neighbors.push(newId);
+		}
+
+		// Bottom-right
+		if (curId < width * (width - 1) && !isRightEdge) {
+			const newId = curId + 1 + width;
+			neighbors.push(newId);
+		}
+
+		for (const neighbor of neighbors) {
+			const newSquare = document.getElementById(neighbor);
+			revealSquare(newSquare);
+		}
+	};
+
+	/**
+	 * Checks to see if the game is in the win state, check if all bomb squares are flagged
+	 */
 	const checkWin = () => {
 		let matches = 0;
 
@@ -68,102 +144,31 @@ document.addEventListener("DOMContentLoaded", () => {
 			}
 		}
 
-		if (matches == bombCount) {
+		if (matches === bombCount) {
 			result.innerHTML = "YOU WON !!!";
 			isGameOver = true;
 		}
 	};
 
-	const checkSquare = (square) => {
-		const curId = square.id;
-		const isLeftEdge = curId % width == 0;
-		const isRightEdge = curId % width == width - 1;
-
-		setTimeout(() => {
-			// Top-left
-			if (curId > 11 && !isLeftEdge) {
-				const newId = parseInt(curId) - 1 - width;
-				const newSquare = document.getElementById(newId);
-
-				click(newSquare);
-			}
-			// Top-middle
-			if (curId > 10) {
-				const newId = parseInt(curId) - width;
-				const newSquare = document.getElementById(newId);
-
-				click(newSquare);
-			}
-			// Top-right
-			if (curId > 9 && !isRightEdge) {
-				const newId = parseInt(curId) + 1 - width;
-				const newSquare = document.getElementById(newId);
-
-				click(newSquare);
-			}
-			// Left
-			if (curId > 0 && !isLeftEdge) {
-				const newId = parseInt(curId) - 1;
-				const newSquare = document.getElementById(newId);
-
-				click(newSquare);
-			}
-			// Right
-			if (curId < 98 && !isRightEdge) {
-				const newId = parseInt(curId) + 1;
-				const newSquare = document.getElementById(newId);
-
-				click(newSquare);
-			}
-			// Bottom-Left
-			if (curId < 90 && !isLeftEdge) {
-				const newId = parseInt(curId) - 1 + width;
-				const newSquare = document.getElementById(newId);
-
-				click(newSquare);
-			}
-			// Bottom-Middle
-			if (curId < 89) {
-				const newId = parseInt(curId) + width;
-				const newSquare = document.getElementById(newId);
-
-				click(newSquare);
-			}
-			// Bottom-Right
-			if (curId < 88 && !isRightEdge) {
-				const newId = parseInt(curId) + 1 + width;
-				const newSquare = document.getElementById(newId);
-
-				click(newSquare);
-			}
-		}, 10);
-	};
-
+	/**
+	 * Puts the game into the loss state
+	 */
 	const gameOver = () => {
 		result.innerHTML = "BOOOOOOOOOM! Game Over WOMP WOMP!";
 		isGameOver = true;
 
 		// show all bombs
-		squares.forEach((square) => {
-			let squareIsBomb = square.classList.contains("bomb");
-
-			if (squareIsBomb) {
-				square.innerHTML = "<span><i class='fa fa-bomb'/></span>";
-				square.classList.remove("bomb");
-				square.classList.add("checked");
-			}
+		bombPositions.forEach((position) => {
+			squares[position].innerHTML =
+				"<span><i class='fa fa-bomb'/></span>";
+			squares[position].classList.remove("bomb");
+			squares[position].classList.add("checked");
 		});
 	};
 
-	const shuffleArray = (arr) => {
-		for (let i = arr.length - 1; i > 0; i--) {
-			const j = Math.floor(Math.random() * (i + 1));
-			[arr[i], arr[j]] = [arr[j], arr[i]];
-		}
-		return arr;
-	};
-
-	// Create our board
+	/**
+	 * Creates the board and initializes the squares array
+	 */
 	const createBoard = () => {
 		flagsRemaining.innerHTML = bombCount;
 
@@ -172,6 +177,15 @@ document.addEventListener("DOMContentLoaded", () => {
 		const emptyArray = Array(width * width - bombCount).fill("valid");
 		const gameArray = emptyArray.concat(bombArray);
 		const shuffledArray = shuffleArray(gameArray);
+
+		bombPositions = new Set(
+			shuffledArray.reduce((acc, curr, i) => {
+				if (curr === "bomb") {
+					acc.push(i);
+				}
+				return acc;
+			}, [])
+		);
 
 		// Iterate through all the squares
 		for (let i = 0; i < width * width; ++i) {
@@ -184,7 +198,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 			// Left-click to check square
 			square.addEventListener("click", () => {
-				click(square);
+				revealSquare(square);
 			});
 			// Shift-click to add flag
 			square.addEventListener("contextmenu", () => {
@@ -269,3 +283,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
 	createBoard();
 });
+
+/**
+ * Shuffles the array using Knuth shuffle algorithm
+ * @param {Array} arr
+ * @returns {Array} arr
+ */
+const shuffleArray = (arr) => {
+	for (let i = arr.length - 1; i > 0; i--) {
+		const j = Math.floor(Math.random() * (i + 1));
+		[arr[i], arr[j]] = [arr[j], arr[i]];
+	}
+	return arr;
+};
