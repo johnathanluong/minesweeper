@@ -1,3 +1,4 @@
+document.addEventListener("contextmenu", (event) => event.preventDefault());
 document.addEventListener("DOMContentLoaded", () => {
 	const grid = document.querySelector(".grid");
 	const flagsRemaining = document.querySelector("#flags-remaining");
@@ -23,7 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
 		} else {
 			let total = square.getAttribute("data");
 			if (total != 0) {
-				square.innerHTML = total;
+				square.textContent = total;
 				return;
 			}
 			checkSquare(square);
@@ -36,8 +37,8 @@ document.addEventListener("DOMContentLoaded", () => {
 			return;
 		}
 
-		isChecked = square.classList.contains("checked");
-		isFlagged = square.classList.contains("flag");
+		let isChecked = square.classList.contains("checked");
+		let isFlagged = square.classList.contains("flag");
 
 		if (!isChecked && flags < bombCount) {
 			if (!isFlagged) {
@@ -45,7 +46,31 @@ document.addEventListener("DOMContentLoaded", () => {
 				++flags;
 				square.innerHTML = "<span><i class='fa fa-flag'/></span>";
 				flagsRemaining.innerHTML = bombCount - flags;
+				checkWin();
+			} else {
+				square.classList.remove("flag");
+				--flags;
+				square.innerHTML = "";
+				flagsRemaining.innerHTML = bombCount - flags;
 			}
+		}
+	};
+
+	const checkWin = () => {
+		let matches = 0;
+
+		for (const element of squares) {
+			let isFlagged = element.classList.contains("flag");
+			let isBomb = element.classList.contains("bomb");
+
+			if (isFlagged && isBomb) {
+				++matches;
+			}
+		}
+
+		if (matches == bombCount) {
+			result.innerHTML = "YOU WON !!!";
+			isGameOver = true;
 		}
 	};
 
@@ -55,50 +80,58 @@ document.addEventListener("DOMContentLoaded", () => {
 		const isRightEdge = curId % width == width - 1;
 
 		setTimeout(() => {
+			// Top-left
+			if (curId > 11 && !isLeftEdge) {
+				const newId = parseInt(curId) - 1 - width;
+				const newSquare = document.getElementById(newId);
+
+				click(newSquare);
+			}
+			// Top-middle
+			if (curId > 10) {
+				const newId = parseInt(curId) - width;
+				const newSquare = document.getElementById(newId);
+
+				click(newSquare);
+			}
+			// Top-right
+			if (curId > 9 && !isRightEdge) {
+				const newId = parseInt(curId) + 1 - width;
+				const newSquare = document.getElementById(newId);
+
+				click(newSquare);
+			}
+			// Left
 			if (curId > 0 && !isLeftEdge) {
 				const newId = parseInt(curId) - 1;
 				const newSquare = document.getElementById(newId);
 
 				click(newSquare);
 			}
-			if (curId > 9 && !isRightEdge) {
-				const newId = parseInt(curId) - 1;
-				const newSquare = document.getElementById(newId);
-
-				click(newSquare);
-			}
-			if (curId > 10) {
-				const newId = parseInt(curId) - 1;
-				const newSquare = document.getElementById(newId);
-
-				click(newSquare);
-			}
-			if (curId > 11 && !isLeftEdge) {
-				const newId = parseInt(curId) - 1;
-				const newSquare = document.getElementById(newId);
-
-				click(newSquare);
-			}
+			// Right
 			if (curId < 98 && !isRightEdge) {
-				const newId = parseInt(curId) - 1;
+				const newId = parseInt(curId) + 1;
 				const newSquare = document.getElementById(newId);
 
 				click(newSquare);
 			}
+			// Bottom-Left
 			if (curId < 90 && !isLeftEdge) {
-				const newId = parseInt(curId) - 1;
+				const newId = parseInt(curId) - 1 + width;
 				const newSquare = document.getElementById(newId);
 
 				click(newSquare);
 			}
-			if (curId < 88 && !isRightEdge) {
-				const newId = parseInt(curId) - 1;
-				const newSquare = document.getElementById(newId);
-
-				click(newSquare);
-			}
+			// Bottom-Middle
 			if (curId < 89) {
-				const newId = parseInt(curId) - 1;
+				const newId = parseInt(curId) + width;
+				const newSquare = document.getElementById(newId);
+
+				click(newSquare);
+			}
+			// Bottom-Right
+			if (curId < 88 && !isRightEdge) {
+				const newId = parseInt(curId) + 1 + width;
 				const newSquare = document.getElementById(newId);
 
 				click(newSquare);
@@ -122,6 +155,14 @@ document.addEventListener("DOMContentLoaded", () => {
 		});
 	};
 
+	const shuffleArray = (arr) => {
+		for (let i = arr.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			[arr[i], arr[j]] = [arr[j], arr[i]];
+		}
+		return arr;
+	};
+
 	// Create our board
 	const createBoard = () => {
 		flagsRemaining.innerHTML = bombCount;
@@ -130,7 +171,7 @@ document.addEventListener("DOMContentLoaded", () => {
 		const bombArray = Array(bombCount).fill("bomb");
 		const emptyArray = Array(width * width - bombCount).fill("valid");
 		const gameArray = emptyArray.concat(bombArray);
-		const shuffledArray = gameArray.sort(() => Math.random() - 0.5);
+		const shuffledArray = shuffleArray(gameArray);
 
 		// Iterate through all the squares
 		for (let i = 0; i < width * width; ++i) {
@@ -146,8 +187,8 @@ document.addEventListener("DOMContentLoaded", () => {
 				click(square);
 			});
 			// Shift-click to add flag
-			square.addEventListener("click", () => {
-				//addFlag(square);
+			square.addEventListener("contextmenu", () => {
+				addFlag(square);
 			});
 
 			// Append the square to the grid
@@ -205,12 +246,12 @@ document.addEventListener("DOMContentLoaded", () => {
 				if (
 					i < 89 &&
 					!isLeftEdge &&
-					squares[i - 1 + width].classList.contains("bomb")
+					squares[i + width].classList.contains("bomb")
 				)
 					++total;
 
 				// bottom-middle
-				if (i < 90 && squares[i + width].classList.contains("bomb"))
+				if (i < 90 && squares[i - 1 + width].classList.contains("bomb"))
 					++total;
 
 				// bottom-right
