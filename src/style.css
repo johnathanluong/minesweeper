@@ -1,0 +1,21 @@
+.container {
+	width: 500px;
+}
+
+.grid {
+	height: 400px;
+	width: 400px;
+	display: flex;
+	background-color: bisque;
+	margin-left: 50px;
+	margin-top: 20px;
+	margin-bottom: 10px;
+	border: 10px solid darkcyan;
+}
+
+div {
+	font-size: 25px;
+	text-align: center;
+	font-family: Verdana, Geneva, Tahoma, sans-serif;
+	font-weight: 700;
+}
