@@ -5,17 +5,15 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>Minesweeper</title>
 		<link rel="stylesheet" href="style.css" />
-		<link
-			rel="stylesheet"
-			href="assets/font-awesome-4.7.0/css/font-awesome.min.css"
-		/>
+		<link rel="stylesheet" href="assets/font-awesome-4.7.0/css/font-awesome.min.css" />
 		<script src="app.js"></script>
 	</head>
 	<body>
 		<div class="container">
 			<div class="grid"></div>
-			<div>Flags left: <span id="flags-remaining" /></div>
+			<div class="flags-container">Bombs left: <span id="flags-remaining" /></div>
 			<div id="result"></div>
+			<button id="reset-button">Reset Game</button>
 		</div>
 	</body>
 </html>

@@ -1,5 +1,11 @@
+body {
+	background-color: #78866b;
+}
+
 .container {
 	width: 500px;
+	margin: auto;
+	padding-top: 10%;
 }
 
 .grid {
@@ -11,7 +17,12 @@
 	margin-left: 50px;
 	margin-top: 20px;
 	margin-bottom: 10px;
-	border: 10px solid darkcyan;
+	border: 15px solid #76593e;
+}
+
+.flags-container,
+#result {
+	color: #c3a456;
 }
 
 div {
@@ -19,6 +30,7 @@ div {
 	text-align: center;
 	font-family: Verdana, Geneva, Tahoma, sans-serif;
 	font-weight: 700;
+	color: #444;
 }
 
 .valid,
@@ -35,4 +47,26 @@ div {
 	height: 40px;
 	border: 2px solid #9c998d;
 	box-sizing: border-box;
+}
+
+#reset-button {
+	display: block;
+	margin: 20px auto;
+	padding: 10px 20px;
+	font-size: 18px;
+	font-weight: bold;
+	color: #f0f0f7;
+	background-color: #76593e;
+	border: none;
+	border-radius: 5px;
+	cursor: pointer;
+	transition: background-color 0.3s ease;
+}
+
+#reset-button:hover {
+	background-color: #866749;
+}
+
+#reset-button:active {
+	background-color: #66492f;
 }

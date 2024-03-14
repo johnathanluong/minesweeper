@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	const grid = document.querySelector('.grid');
 	const flagsRemaining = document.querySelector('#flags-remaining');
 	const result = document.querySelector('#result');
+	const resetButton = document.querySelector('#reset-button');
 	const width = 10;
 	let flags = 0;
 	let bombCount = 20;
@@ -247,6 +248,27 @@ document.addEventListener('DOMContentLoaded', () => {
 			}
 		}
 	};
+
+	/**
+	 * Resets the board when clicking the resetButton
+	 */
+	const resetGame = () => {
+		grid.innerHTML = '';
+
+		flags = 0;
+		isGameOver = false;
+		squares = [];
+
+		flagsRemaining.textContent = bombCount;
+		result.textContent = '';
+
+		createBoard();
+	};
+
+	// Adds reset button functionality
+	resetButton.addEventListener('click', () => {
+		resetGame();
+	});
 
 	createBoard();
 });
