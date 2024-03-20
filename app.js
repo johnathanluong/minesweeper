@@ -7,20 +7,20 @@ document.addEventListener('DOMContentLoaded', () => {
 	const width = 10;
 	let flags = 0;
 	let bombCount = 20;
-	let squares = [];
+	let squares;
 	let isGameOver = false;
-	let bombPositions;
+	let bombPositions = [];
 
 	/**
 	 * Reveals a square on the board and recursively reveals neighboring squares if the square is empty.
 	 * @param {HTMLElement} square - The square to be revealed.
 	 */
 	const revealSquare = (square) => {
-		let isChecked = square.classList.contains('checked');
+		let isRevealed = square.classList.contains('revealed');
 		let isFlagged = square.classList.contains('flag');
 		let isBomb = square.classList.contains('bomb');
 
-		if (isGameOver || isChecked || isFlagged) {
+		if (isGameOver || isRevealed || isFlagged) {
 			return;
 		}
 
@@ -28,12 +28,15 @@ document.addEventListener('DOMContentLoaded', () => {
 			gameOver();
 		} else {
 			let total = square.getAttribute('data');
+			square.classList.add('revealed');
 			if (total != 0) {
 				square.textContent = total;
 				return;
 			}
-			square.classList.add('checked');
-			revealNeighbors(square);
+
+			const row = Math.floor(parseInt(square.id) / width);
+			const col = parseInt(square.id) % width;
+			revealNeighbors(row, col);
 		}
 	};
 
@@ -46,10 +49,11 @@ document.addEventListener('DOMContentLoaded', () => {
 			return;
 		}
 
-		let isChecked = square.classList.contains('checked');
+		let isRevealed = square.classList.contains('revealed');
 		let isFlagged = square.classList.contains('flag');
 
-		if (!isChecked && flags < bombCount) {
+		// Checks if the square has been revealed
+		if (!isRevealed && flags < bombCount) {
 			if (!isFlagged) {
 				square.classList.add('flag');
 				++flags;
@@ -62,71 +66,39 @@ document.addEventListener('DOMContentLoaded', () => {
 				square.innerHTML = '';
 				flagsRemaining.innerHTML = bombCount - flags;
 			}
+		} else if (isFlagged) {
+			square.classList.remove('flag');
+			--flags;
+			square.innerHTML = '';
+			flagsRemaining.innerHTML = bombCount - flags;
 		}
 	};
 
 	/**
 	 * Gets the surrounding squares and reveals them using revealSquare()
-	 * @param {HTMLElement} square
+	 * @param {number} row - The row index of the square
+	 * @param {number} col - The column index of the square
 	 */
-	const revealNeighbors = (square) => {
-		const curId = parseInt(square.id);
-		const isLeftEdge = curId % width === 0;
-		const isRightEdge = (curId + 1) % width === 0;
+	const revealNeighbors = (row, col) => {
+		const directions = [
+			[-1, -1],
+			[-1, 0],
+			[-1, 1],
+			[0, -1],
+			[0, 1],
+			[1, -1],
+			[1, 0],
+			[1, 1]
+		];
 
-		const neighbors = [];
+		for (const [dx, dy] of directions) {
+			const newRow = row + dx;
+			const newCol = col + dy;
 
-		// Top-left
-		if (curId >= width && !isLeftEdge) {
-			const newId = curId - 1 - width;
-			neighbors.push(newId);
-		}
-
-		// Top
-		if (curId >= width) {
-			const newId = curId - width;
-			neighbors.push(newId);
-		}
-
-		// Top-right
-		if (curId >= width && !isRightEdge) {
-			const newId = curId + 1 - width;
-			neighbors.push(newId);
-		}
-
-		// Left
-		if (!isLeftEdge) {
-			const newId = curId - 1;
-			neighbors.push(newId);
-		}
-
-		// Right
-		if (!isRightEdge) {
-			const newId = curId + 1;
-			neighbors.push(newId);
-		}
-
-		// Bottom-left
-		if (curId < width * (width - 1) && !isLeftEdge) {
-			const newId = curId - 1 + width;
-			neighbors.push(newId);
-		}
-
-		// Bottom
-		if (curId < width * (width - 1)) {
-			const newId = curId + width;
-			neighbors.push(newId);
-		}
-
-		// Bottom-right
-		if (curId < width * (width - 1) && !isRightEdge) {
-			const newId = curId + 1 + width;
-			neighbors.push(newId);
-		}
-
-		for (const neighbor of neighbors) {
-			const newSquare = document.getElementById(neighbor);
-			revealSquare(newSquare);
+			if (newRow >= 0 && newRow < width && newCol >= 0 && newCol < width) {
+				const square = squares[newRow][newCol];
+				revealSquare(square);
+			}
 		}
 	};
 
@@ -136,11 +108,9 @@ document.addEventListener('DOMContentLoaded', () => {
 	const checkWin = () => {
 		let matches = 0;
 
-		for (const element of squares) {
-			let isFlagged = element.classList.contains('flag');
-			let isBomb = element.classList.contains('bomb');
-
-			if (isFlagged && isBomb) {
+		for (const [row, col] of bombPositions) {
+			const square = squares[row][col];
+			if (square.classList.contains('flag')) {
 				++matches;
 			}
 		}
@@ -158,93 +128,72 @@ document.addEventListener('DOMContentLoaded', () => {
 		result.innerHTML = 'BOOOOOOOOOM! Game Over WOMP WOMP!';
 		isGameOver = true;
 
-		// show all bombs
-		bombPositions.forEach((position) => {
-			squares[position].innerHTML = "<span><i class='fa fa-bomb'/></span>";
-			squares[position].classList.remove('bomb');
-			squares[position].classList.add('checked');
-		});
+		// Reveals all bombs
+		for (const [row, col] of bombPositions) {
+			const square = squares[row][col];
+			square.innerHTML = "<span><i class='fa fa-bomb'/></span>";
+			square.classList.remove('bomb');
+			square.classList.add('revealed');
+		}
 	};
 
 	/**
-	 * Creates the board and initializes the squares array
+	 * Creates the board and initializes the squares and bombPositions arrays
 	 */
 	const createBoard = () => {
 		flagsRemaining.innerHTML = bombCount;
 
-		// Get shuffled game arrays with random bombs and valid squares
-		const bombArray = Array(bombCount).fill('bomb');
-		const emptyArray = Array(width * width - bombCount).fill('valid');
-		const gameArray = emptyArray.concat(bombArray);
+		// Creates an empty gameArray filled with undefined, then maps bomb to the first bombCount number of elements and the rest as valid
+		const gameArray = Array(width * width)
+			.fill()
+			.map((_, index) => (index < bombCount ? 'bomb' : 'valid'));
+
+		// Shuffles the array
 		const shuffledArray = shuffleArray(gameArray);
 
-		bombPositions = new Set(
-			shuffledArray.reduce((acc, curr, i) => {
-				if (curr === 'bomb') {
-					acc.push(i);
+		bombPositions = [];
+		squares = Array.from({ length: width }, () => []);
+
+		// Creates and sets up each square on the board
+		for (let row = 0; row < width; row++) {
+			for (let col = 0; col < width; col++) {
+				// Create a div for each square
+				const square = document.createElement('div');
+
+				// Set the id and the corresponding class to the square from shuffledArray
+				const i = row * width + col;
+				square.id = i;
+				square.classList.add(shuffledArray[i]);
+
+				// Add row and column indices to bombPosition if square is a bomb
+				if (square.classList.contains('bomb')) {
+					bombPositions.push([row, col]);
 				}
-				return acc;
-			}, [])
-		);
 
-		// Iterate through all the squares
-		for (let i = 0; i < width * width; ++i) {
-			// Create a div for the square
-			const square = document.createElement('div');
+				// Append the square to the grid
+				grid.appendChild(square);
+				squares[row][col] = square;
 
-			// Set the id and class to the square based on position in the shuffledArray
-			square.id = i;
-			square.classList.add(shuffledArray[i]);
+				// Left-click to reveal square
+				square.addEventListener('click', () => {
+					revealSquare(square);
+				});
 
-			// Left-click to check square
-			square.addEventListener('click', () => {
-				revealSquare(square);
-			});
-			// Shift-click to add flag
-			square.addEventListener('contextmenu', () => {
-				addFlag(square);
-			});
-
-			// Append the square to the grid
-			grid.appendChild(square);
-			squares.push(square);
+				// Shift-click to add flag
+				square.addEventListener('contextmenu', () => {
+					addFlag(square);
+				});
+			}
 		}
 
-		// Iterate through the squares
-		for (let i = 0; i < squares.length; ++i) {
-			let total = 0;
-
-			// Check if current square is on the left or right edge
-			const isLeftEdge = i % width === 0;
-			const isRightEdge = i % width === width - 1;
-
-			// Counting the squares around each valid square for bombs
-			if (squares[i].classList.contains('valid')) {
-				// Top-left
-				if (i > 11 && !isLeftEdge && squares[i - 1 - width].classList.contains('bomb')) ++total;
-
-				// Top-middle
-				if (i > 10 && squares[i - width].classList.contains('bomb')) ++total;
-
-				// Top-right
-				if (i > 9 && !isRightEdge && squares[i + 1 - width].classList.contains('bomb')) ++total;
-
-				// Left
-				if (i > 0 && !isLeftEdge && squares[i - 1].classList.contains('bomb')) ++total;
-
-				// Right
-				if (i < 99 && !isRightEdge && squares[i + 1].classList.contains('bomb')) ++total;
-
-				// Bottom-left
-				if (i < 89 && !isLeftEdge && squares[i + width].classList.contains('bomb')) ++total;
-
-				// Bottom-middle
-				if (i < 90 && squares[i - 1 + width].classList.contains('bomb')) ++total;
-
-				// Bottom-right
-				if (i < 88 && !isRightEdge && squares[i + 1 + width].classList.contains('bomb')) ++total;
-
-				squares[i].setAttribute('data', total);
+		// Calculates each square's data based on the surrounding bombs
+		for (let row = 0; row < width; row++) {
+			for (let col = 0; col < width; col++) {
+				const square = squares[row][col];
+				if (square.classList.contains('valid')) {
+					const surroundingBombs = countSurroundingBombs(row, col);
+					square.setAttribute('data', surroundingBombs);
+				}
 			}
 		}
 	};
@@ -269,6 +218,44 @@ document.addEventListener('DOMContentLoaded', () => {
 	resetButton.addEventListener('click', () => {
 		resetGame();
 	});
+
+	/**
+	 * Counts the number of surrounding bombs for a given square
+	 * @param {number} row - The row index of the square
+	 * @param {number} col - The column index of the square
+	 * @returns {number} The count of surrounding bombs
+	 */
+	const countSurroundingBombs = (row, col) => {
+		const directions = [
+			[-1, -1],
+			[-1, 0],
+			[-1, 1],
+			[0, -1],
+			[0, 1],
+			[1, -1],
+			[1, 0],
+			[1, 1]
+		];
+
+		let count = 0;
+
+		for (const [dx, dy] of directions) {
+			const newRow = row + dx;
+			const newCol = col + dy;
+
+			if (
+				newRow >= 0 &&
+				newRow < width &&
+				newCol >= 0 &&
+				newCol < width &&
+				squares[newRow][newCol].classList.contains('bomb')
+			) {
+				++count;
+			}
+		}
+
+		return count;
+	};
 
 	createBoard();
 });
